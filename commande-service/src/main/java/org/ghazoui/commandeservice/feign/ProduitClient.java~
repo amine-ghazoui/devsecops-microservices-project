@@ -1,0 +1,4 @@
+package org.ghazoui.commandeservice.feign;
+
+public interface ProduitClient {
+}

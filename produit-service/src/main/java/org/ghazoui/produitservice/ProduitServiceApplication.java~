@@ -19,7 +19,7 @@ public class ProduitServiceApplication {
 		return args -> {
 			// Vérifier si la base de données est déjà initialisée
 			if (produitRepository.count() == 0) {
-				System.out.println(" Initialisation de la base de données avec des produits de test...");
+				System.out.println("🚀 Initialisation de la base de données avec des produits de test...");
 
 				// Créer des produits de test
 				produitRepository.save(Produit.builder()
