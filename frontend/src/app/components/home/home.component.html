@@ -1,0 +1,68 @@
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12 text-center mb-5">
+            <h1 class="display-4">
+                <i class="bi bi-cart-check-fill text-primary"></i>
+                Bienvenue dans Gestion Commandes
+            </h1>
+            <p class="lead text-muted">Gérez vos produits et commandes en toute simplicité</p>
+        </div>
+    </div>
+
+    <div class="row g-4" *ngIf="!loading">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center p-5">
+                    <i class="bi bi-box-seam display-1 text-primary mb-3"></i>
+                    <h3 class="card-title">Produits</h3>
+                    <p class="display-6 text-primary fw-bold">{{ totalProduits }}</p>
+                    <p class="text-muted">Produits disponibles</p>
+                    <a routerLink="/produits" class="btn btn-primary">
+                        <i class="bi bi-eye me-2"></i>Voir les produits
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center p-5">
+                    <i class="bi bi-receipt display-1 text-success mb-3"></i>
+                    <h3 class="card-title">Commandes</h3>
+                    <p class="display-6 text-success fw-bold">{{ totalCommandes }}</p>
+                    <p class="text-muted">Commandes enregistrées</p>
+                    <a routerLink="/commandes" class="btn btn-success">
+                        <i class="bi bi-eye me-2"></i>Voir les commandes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5" *ngIf="!loading">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h4 class="card-title mb-4">
+                        <i class="bi bi-lightning-charge-fill text-warning me-2"></i>
+                        Actions rapides
+                    </h4>
+                    <div class="d-flex flex-wrap gap-3">
+                        <a routerLink="/produits/new" class="btn btn-outline-primary">
+                            <i class="bi bi-plus-circle me-2"></i>Nouveau produit
+                        </a>
+                        <a routerLink="/commandes/new" class="btn btn-outline-success">
+                            <i class="bi bi-plus-circle me-2"></i>Nouvelle commande
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-5" *ngIf="loading">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Chargement...</span>
+        </div>
+    </div>
+</div>
