@@ -16,6 +16,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   # Keycloak
   keycloak:
@@ -30,17 +32,21 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_HTTP_PORT: 8080
+      KC_HEALTH_ENABLED: 'true'
+      KC_METRICS_ENABLED: 'true'
     ports:
       - "8080:8080"
     depends_on:
       postgres-keycloak:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080;echo -e 'GET /health/ready HTTP/1.1\r\nhost: 127.0.0.1\r\nConnection: close\r\n\r\n' >&3;if [ $? -eq 0 ]; then echo 'Healthcheck Successful';exit 0;else echo 'Healthcheck Failed';exit 1;fi;"]
+      interval: 30s
+      timeout: 10s
+      retries: 15
+      start_period: 90s
+    networks:
+      - app-network
 
   postgres-product:
     image: 'postgres:15'
@@ -58,6 +64,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   postgres-command:
     image: 'postgres:15'
@@ -75,6 +83,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   dicovery-service:
     build: ./dicovery-service
@@ -84,10 +94,13 @@ services:
     expose:
       - "8761"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
-      interval: 10s
-      retries: 5
+      test: ["CMD-SHELL", "curl -f http://localhost:8761/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
       start_period: 60s
+    networks:
+      - app-network
 
   gateway-service:
     build: ./gateway-service
@@ -98,16 +111,21 @@ services:
       - "8888"
     environment:
       DISCOVERY_SERVICE_URL: http://dicovery-service:8761/eureka
-      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ecommerce-realm
+#      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ecommerce-realm
       KEYCLOAK_JWK_URI: http://keycloak:8080/realms/ecommerce-realm/protocol/openid-connect/certs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
-      interval: 10s
+      test: ["CMD-SHELL", "curl -f http://localhost:8888/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
     depends_on:
       dicovery-service:
         condition: service_healthy
       keycloak:
         condition: service_healthy
+    networks:
+      - app-network
 
   produit-service:
     build: ./produit-service
@@ -124,10 +142,11 @@ services:
       KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ecommerce-realm
       KEYCLOAK_JWK_URI: http://keycloak:8080/realms/ecommerce-realm/protocol/openid-connect/certs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
-      interval: 10s
-      retries: 5
-      start_period: 60s
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
     depends_on:
       dicovery-service:
         condition: service_healthy
@@ -135,6 +154,8 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
+    networks:
+      - app-network
 
   commande-service:
     build: ./commande-service
@@ -151,10 +172,11 @@ services:
       KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ecommerce-realm
       KEYCLOAK_JWK_URI: http://keycloak:8080/realms/ecommerce-realm/protocol/openid-connect/certs
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
-      interval: 10s
-      retries: 5
-      start_period: 60s
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
     depends_on:
       dicovery-service:
         condition: service_healthy
@@ -164,6 +186,8 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
+    networks:
+      - app-network
 
   frontend:
     build: ./frontend
@@ -179,8 +203,14 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_healthy
+    networks:
+      - app-network
 
 volumes:
   products_data:
   commands_data:
   keycloak_data:
+
+networks:
+  app-network:
+    driver: bridge

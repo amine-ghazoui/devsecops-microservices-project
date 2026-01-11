@@ -17,25 +17,25 @@ import java.util.List;
 @EnableWebFluxSecurity
 public class CorsConfig {
 
-
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
 
         http
                 // 🔒 Configuration CORS et CSRF
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .cors(cors -> {}) // ✅ Activé (utilise le bean CorsWebFilter)
+                .cors(cors -> {
+                }) // ✅ Activé (utilise le bean CorsWebFilter)
 
                 // 🔐 Configuration des routes
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/actuator/**").permitAll()
                         // Autoriser les requêtes OPTIONS (preflight CORS) sans authentification
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .anyExchange().authenticated()
-                )
+                        .anyExchange().authenticated())
 
                 // 🔑 Authentification via JWT (corrigé)
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {
+                }));
 
         return http.build();
     }
@@ -67,7 +67,8 @@ public class CorsConfig {
         corsConfig.setMaxAge(3600L);
 
         // ✅ Appliquer les valeurs par défaut permissives
-        corsConfig.applyPermitDefaultValues();
+        // ❌ REMOVED: corsConfig.applyPermitDefaultValues(); // Conflict with
+        // setAllowedOriginPatterns
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfig);
