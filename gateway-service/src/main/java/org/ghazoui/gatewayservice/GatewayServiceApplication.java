@@ -16,7 +16,7 @@ public class GatewayServiceApplication {
 
 	// ce bean permet de configurer dynamiquement les routes de notre gateway
 	@Bean
-	DiscoveryClientRouteDefinitionLocator locator(ReactiveDiscoveryClient rdc, DiscoveryLocatorProperties dlp){
+	DiscoveryClientRouteDefinitionLocator locator(ReactiveDiscoveryClient rdc, DiscoveryLocatorProperties dlp) {
 		return new DiscoveryClientRouteDefinitionLocator(rdc, dlp);
 	}
 }

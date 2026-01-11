@@ -20,72 +20,75 @@ public class CommandeServiceApplication {
 	}
 
 	@Bean
-	CommandLineRunner initTestData(CommandeService commandeService) {
+	CommandLineRunner initTestData(CommandeService commandeService,
+			org.ghazoui.commandeservice.feign.ProduitRestClient produitRestClient) {
 		return args -> {
-			System.out.println("🚀 Initialisation des données de test pour les commandes...");
+			System.out.println("🚀 Tentative d'initialisation des données de test pour les commandes...");
 
-			try {
-				// Commande 1 : Achat de plusieurs produits tech
-				CommandeRequest commande1 = CommandeRequest.builder()
-						.ligne(Arrays.asList(
-								LigneCommandeRequest.builder()
-										.idProduit(1L) // Dell XPS 15
-										.quantite(2)
-										.build(),
-								LigneCommandeRequest.builder()
-										.idProduit(6L) // AirPods Pro 2
-										.quantite(3)
-										.build()))
-						.build();
+			// Attendre un peu que le produit-service soit prêt et enregistré dans Eureka
+			int maxRetries = 5;
+			int retryCount = 0;
+			boolean success = false;
 
-				commandeService.createCommande(commande1);
-				System.out.println("✅ Commande 1 créée avec succès");
+			while (retryCount < maxRetries && !success) {
+				try {
+					var produits = produitRestClient.getAllProduits();
 
-				// Commande 2 : Achat de smartphones
-				CommandeRequest commande2 = CommandeRequest.builder()
-						.ligne(Arrays.asList(
-								LigneCommandeRequest.builder()
-										.idProduit(2L) // iPhone 15 Pro
-										.quantite(1)
-										.build(),
-								LigneCommandeRequest.builder()
-										.idProduit(3L) // Samsung Galaxy S24
-										.quantite(1)
-										.build()))
-						.build();
+					if (produits != null && !produits.isEmpty()) {
+						System.out.println("📦 " + produits.size() + " produits trouvés. Création des commandes...");
 
-				commandeService.createCommande(commande2);
-				System.out.println("✅ Commande 2 créée avec succès");
+						// Commande 1 : Les deux premiers produits
+						if (produits.size() >= 2) {
+							CommandeRequest commande1 = CommandeRequest.builder()
+									.ligne(Arrays.asList(
+											LigneCommandeRequest.builder()
+													.idProduit(produits.get(0).getId())
+													.quantite(2)
+													.build(),
+											LigneCommandeRequest.builder()
+													.idProduit(produits.get(1).getId())
+													.quantite(3)
+													.build()))
+									.build();
+							commandeService.createCommande(commande1);
+							System.out.println("✅ Commande 1 créée");
+						}
 
-				// Commande 3 : Setup bureau complet
-				CommandeRequest commande3 = CommandeRequest.builder()
-						.ligne(Arrays.asList(
-								LigneCommandeRequest.builder()
-										.idProduit(4L) // MacBook Pro M3
-										.quantite(1)
-										.build(),
-								LigneCommandeRequest.builder()
-										.idProduit(8L) // Logitech MX Master 3S
-										.quantite(1)
-										.build(),
-								LigneCommandeRequest.builder()
-										.idProduit(9L) // Clavier Keychron K2
-										.quantite(1)
-										.build(),
-								LigneCommandeRequest.builder()
-										.idProduit(10L) // Moniteur LG UltraWide
-										.quantite(1)
-										.build()))
-						.build();
+						// Commande 2 : Un produit aléatoire
+						if (produits.size() >= 3) {
+							CommandeRequest commande2 = CommandeRequest.builder()
+									.ligne(Arrays.asList(
+											LigneCommandeRequest.builder()
+													.idProduit(produits.get(2).getId())
+													.quantite(1)
+													.build()))
+									.build();
+							commandeService.createCommande(commande2);
+							System.out.println("✅ Commande 2 créée");
+						}
 
-				commandeService.createCommande(commande3);
-				System.out.println("✅ Commande 3 créée avec succès");
+						System.out.println("🎉 Initialisation des commandes terminée avec succès!");
+						success = true;
+					} else {
+						System.out.println("⚠️ Aucun produit trouvé. Nouvelle tentative dans 5s... (" + (retryCount + 1)
+								+ "/" + maxRetries + ")");
+						Thread.sleep(5000);
+						retryCount++;
+					}
+				} catch (Exception e) {
+					System.err.println("❌ Erreur lors de la tentative " + (retryCount + 1) + ": " + e.getMessage());
+					try {
+						Thread.sleep(5000);
+					} catch (InterruptedException ie) {
+						Thread.currentThread().interrupt();
+					}
+					retryCount++;
+				}
+			}
 
-				System.out.println("🎉 Toutes les commandes de test ont été créées avec succès!");
-
-			} catch (Exception e) {
-				System.err.println("❌ Erreur lors de la création des commandes de test: " + e.getMessage());
-				System.err.println("💡 Assurez-vous que le produit-service est démarré et accessible.");
+			if (!success) {
+				System.err.println("❌ Échec de l'initialisation des commandes après " + maxRetries + " tentatives.");
+				System.err.println("💡 Vérifiez que 'produit-service' est bien démarré et accessible via Eureka.");
 			}
 		};
 	}
