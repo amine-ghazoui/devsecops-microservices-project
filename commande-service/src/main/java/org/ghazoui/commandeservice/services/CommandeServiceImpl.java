@@ -32,8 +32,18 @@ public class CommandeServiceImpl implements CommandeService {
 
         // Créer les lignes de commande avec les informations des produits
         request.getLigne().forEach(ligneRequest -> {
+            System.out
+                    .println("🔍 [DEBUG] CommandeService -> ProduitService (ID: " + ligneRequest.getIdProduit() + ")");
             // Récupérer les informations du produit via Feign
             ProduitDto produit = produitRestClient.getProduitById(ligneRequest.getIdProduit());
+
+            if (produit == null) {
+                System.err
+                        .println("❌ [DEBUG] produit-service a retourné NULL pour l'ID: " + ligneRequest.getIdProduit());
+                throw new RuntimeException("Produit " + ligneRequest.getIdProduit() + " non trouvé.");
+            }
+
+            System.out.println("📦 [DEBUG] Produit récupéré: " + produit.getNom());
 
             LigneCommande ligne = LigneCommande.builder()
                     .idProduit(produit.getId())

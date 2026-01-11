@@ -1,5 +1,47 @@
-
 services:
+  # Base de données PostgreSQL pour Keycloak
+  postgres-keycloak:
+    image: 'postgres:15'
+    container_name: postgres-keycloak
+    environment:
+      POSTGRES_DB: keycloak_db
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak123
+    volumes:
+      - keycloak_data:/var/lib/postgresql/data
+    ports:
+      - '5434:5432'
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U keycloak -d keycloak_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Keycloak
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: keycloak
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-keycloak:5432/keycloak_db
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak123
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres-keycloak:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
   postgres-product:
     image: 'postgres:15'
     container_name: postgres-product
@@ -56,11 +98,15 @@ services:
       - "8888"
     environment:
       DISCOVERY_SERVICE_URL: http://dicovery-service:8761/eureka
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ecommerce-realm
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/ecommerce-realm/protocol/openid-connect/certs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
       interval: 10s
     depends_on:
       dicovery-service:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
 
   produit-service:
@@ -75,6 +121,8 @@ services:
       DB_URL: jdbc:postgresql://postgres-product:5432/products_db
       DB_USERNAME: admin
       DB_PASSWORD: 123456
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ecommerce-realm
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/ecommerce-realm/protocol/openid-connect/certs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
       interval: 10s
@@ -84,6 +132,8 @@ services:
       dicovery-service:
         condition: service_healthy
       postgres-product:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
 
   commande-service:
@@ -98,6 +148,8 @@ services:
       DB_URL: jdbc:postgresql://postgres-command:5432/commands_db
       DB_USERNAME: admin
       DB_PASSWORD: 123456
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/ecommerce-realm
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/ecommerce-realm/protocol/openid-connect/certs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
       interval: 10s
@@ -110,22 +162,25 @@ services:
         condition: service_healthy
       postgres-command:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
     container_name: frontend
     ports:
       - "4200:80"
+    environment:
+      KEYCLOAK_URL: http://localhost:8080
+      KEYCLOAK_REALM: ecommerce-realm
+      KEYCLOAK_CLIENT_ID: frontend-client
     depends_on:
       gateway-service:
         condition: service_healthy
-    networks:
-      - microservices-network
+      keycloak:
+        condition: service_healthy
 
 volumes:
   products_data:
   commands_data:
-
-networks:
-  microservices-network:
-    driver: bridge
+  keycloak_data:
